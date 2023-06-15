@@ -6,33 +6,20 @@ import json
 with open('config.json') as f:
     config = json.load(f)
 
-
-BV = config['VIDEO']['BV']
 # 打开浏览器 按F12 找到 b站 的 cookie
 SESSDATA = config['USER']['SESSDATA']
 BILI_JCT = config['USER']['BILI_JCT']
 BUVID3 = config['USER']['BUVID3']
 
-# 黑名单，用逗号隔开 数组
-blackList = config['VIDEO']['BlackList'].replace(' ', '').split(',')
-
-# 默认开启子评论检测，速度较慢
-able_subcomment = True
-able_subcomment = config['VIDEO']['able_subcomment']
-able_printcomment = True
-able_subcomment = config['VIDEO']['able_printcomment']
-
-
 # 实例化 Credential 类
 credential = Credential(
     sessdata=SESSDATA, bili_jct=BILI_JCT, buvid3=BUVID3)
-# oid
-av = bvid2aid(BV)
+
 
 # 需要用户信息才能查看更多相关评论
 
 
-async def get_all_sub_comments(rpid):
+async def get_all_sub_comments(av, rpid):
     # 存储评论
     subComments = []
     page_index = 1
@@ -52,11 +39,11 @@ async def get_all_sub_comments(rpid):
 # 把隐藏的子评论读取出来
 
 
-async def get_all_page_comments(replies):
+async def get_all_page_comments(av, replies, ):
     for reply in replies:
         # 判断 阿B 有么有把 子评论 隐藏了
-        if able_subcomment and ('sub_reply_entry_text' in reply['reply_control']):
-            reply['replies'] = await get_all_sub_comments(reply['rpid'])
+        if ('sub_reply_entry_text' in reply['reply_control']):
+            reply['replies'] = await get_all_sub_comments(av, reply['rpid'])
     return replies
 
 # 检测是否含有 关键字
@@ -76,80 +63,101 @@ def black_cheak(cmt, blackList, upper_mid, able_printcomment) -> bool:
 
 
 async def main():
-    # 存储评论
-    comments = []
-    # 页码
-    page = 1
 
-    # 当前已获取数量
-    count = 0
+    for conf in config['VIDEOS']:
+        BV = conf['BV']
+        # oid
+        av = bvid2aid(BV)
+        # 黑名单，用逗号隔开 数组
+        blackList = conf['BlackList'].replace(' ', '').split(',')
+        blackList=list(filter(None, blackList)) # 去掉 空字符串
+        # 默认开启子评论检测，速度较慢
+        able_subcomment = True
+        if 'able_subcomment' in conf:
+            able_subcomment = conf['able_subcomment']
 
-    # 要删除的名单
-    delcommentList = []
+        able_printcomment = True
+        if 'able_printcomment' in conf:
+            able_printcomment = conf['able_printcomment']
 
-    # 阿B 返回的结果，置顶单独有一列
-    c = await comment.get_comments(av, comment.CommentResourceType.VIDEO, page)
-    sumCount = c['page']['count']
-    upper_mid = c['upper']['mid']
-    # 置顶单独有一列，是数组
-    if 'top_replies' in c:
-        comments.extend(await get_all_page_comments(c['top_replies']))
+        # 存储评论
+        comments = []
+        # 页码
+        page = 1
 
-    while True:
-        # 获取评论
+        # 当前已获取数量
+        count = 0
+
+        # 要删除的名单
+        delcommentList = []
+
+        # 阿B 返回的结果，置顶单独有一列
         c = await comment.get_comments(av, comment.CommentResourceType.VIDEO, page)
-        # print(c)
-        # 存储评论，如果被评论被删除的多，后面的数据就为空了
-        if c['replies']:  # 这是一页评论
-            comments.extend(await get_all_page_comments(c['replies']))
-        else:
-            break
-        # 增加已获取数量
-        count += c['page']['size']
-        # 增加页码
-        page += 1
+        sumCount = c['page']['count']
+        upper_mid = c['upper']['mid']
+        # 置顶单独有一列，是数组
+        if 'top_replies' in c:
+            if able_subcomment:
+                c['top_replies'] = await get_all_page_comments(av, c['top_replies'])
+            comments.extend(c['top_replies'])
 
-        if count >= c['page']['count']:
-            # 当前已获取数量已达到评论总数，跳出循环
-            break
+        while True:
+            # 获取评论
+            c = await comment.get_comments(av, comment.CommentResourceType.VIDEO, page)
+            # print(c)
+            # 存储评论，如果被评论被删除的多，后面的数据就为空了
+            if c['replies']:  # 这是一页评论
+                if able_subcomment:
+                    c['replies'] = await get_all_page_comments(av, c['replies'])
+                comments.extend(c['replies'])
+            else:
+                break
+            # 增加已获取数量
+            count += c['page']['size']
+            # 增加页码
+            page += 1
 
-    # 打印评论，并检测
-    print(f"\n\n{datetime.datetime.now()} {BV}")
-    print("blackList:", blackList)
-    countSub = 0
-    for cmt in comments:
+            if count >= c['page']['count']:
+                # 当前已获取数量已达到评论总数，跳出循环
+                break
 
-        # 黑名单检测
-        if black_cheak(cmt=cmt, blackList=blackList, upper_mid=upper_mid, able_printcomment=able_printcomment):
-            delcommentList.append(cmt['rpid'])
-            print(
-                f"x rpid:{cmt['rpid']} mid:{cmt['mid']} {cmt['member']['uname']}: {cmt['content']['message']}")
-        elif able_printcomment:
-            print(
-                f"rpid:{cmt['rpid']} {cmt['member']['uname']}: {cmt['content']['message']}")
-        # 对子评论
-        if cmt['replies']:
-            for reply in cmt['replies']:
-                countSub += 1
-                # 对子评论也检测
-                if black_cheak(cmt=reply, blackList=blackList, upper_mid=upper_mid, able_printcomment=able_printcomment):
-                    delcommentList.append(reply['rpid'])
-                    print(
-                        f"\tx 子评论： rpid:{reply['rpid']} mid:{reply['mid']} {reply['member']['uname']}: {reply['content']['message']}")
-                elif able_printcomment:
-                    print(
-                        f"\t 子评论： rpid:{reply['rpid']} {reply['member']['uname']}: {reply['content']['message']}")
-    # 打印评论总数
-    print(
-        f"共有 {count + countSub} 条评论（含子评论 {countSub} 条）,被删除或系统屏蔽有 {sumCount - count}", "条")
-    print('删除', len(delcommentList), '条', delcommentList)
+        # 打印评论，并检测
+        print(f"\n\n{datetime.datetime.now()} {BV}")
+        print("blackList:", blackList)
+        countSub = 0
+        for cmt in comments:
 
-    # 执行删除的名单
-    for delcomment in delcommentList:
-        # 实例化 Comment 类
-        com = comment.Comment(
-            oid=av, type_=comment.CommentResourceType.VIDEO, rpid=delcomment, credential=credential)
-        await com.delete()
+            # 黑名单检测
+            if black_cheak(cmt=cmt, blackList=blackList, upper_mid=upper_mid, able_printcomment=able_printcomment):
+                delcommentList.append(cmt['rpid'])
+                print(
+                    f"x rpid:{cmt['rpid']} mid:{cmt['mid']} {cmt['member']['uname']}: {cmt['content']['message']}")
+            elif able_printcomment:
+                print(
+                    f"rpid:{cmt['rpid']} {cmt['member']['uname']}: {cmt['content']['message']}")
+            # 对子评论
+            if cmt['replies']:
+                for reply in cmt['replies']:
+                    countSub += 1
+                    # 对子评论也检测
+                    if black_cheak(cmt=reply, blackList=blackList, upper_mid=upper_mid, able_printcomment=able_printcomment):
+                        delcommentList.append(reply['rpid'])
+                        print(
+                            f"\tx 子评论： rpid:{reply['rpid']} mid:{reply['mid']} {reply['member']['uname']}: {reply['content']['message']}")
+                    elif able_printcomment:
+                        print(
+                            f"\t 子评论： rpid:{reply['rpid']} {reply['member']['uname']}: {reply['content']['message']}")
+        # 打印评论总数
+        print(
+            f"共有 {count + countSub} 条评论（含子评论 {countSub} 条）,被删除或系统屏蔽有 {sumCount - count}", "条")
+        print('删除', len(delcommentList), '条', delcommentList)
+
+        # 执行删除的名单
+        for delcomment in delcommentList:
+            # 实例化 Comment 类
+            com = comment.Comment(
+                oid=av, type_=comment.CommentResourceType.VIDEO, rpid=delcomment, credential=credential)
+            await com.delete()
 
 
 sync(main())

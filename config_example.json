@@ -1,13 +1,21 @@
 {
   "USER": {
     "SESSDATA": "请填写自己的 B站 cookie",
-    "BILI_JCT": "请填写自己的 B站 cookie",
-    "BUVID3": "请填写自己的 B站 cookie"
+    "BILI_JCT": "不知道怎么写看 README",
+    "BUVID3": "最后把本文件名改为 config.json "
   },
-  "VIDEO": {
-    "BV": "BV1uv411q7Mv",
-    "able_subcomment": true,
-    "able_printcomment": true,
-    "BlackList": "巨婴,脑残,用英文逗号隔开关键字"
-  }
+  "VIDEOS": [
+    {
+      "BV": "BV1uv411q7Mv",
+      "able_subcomment": true,
+      "able_printcomment": true,
+      "BlackList": "巨婴,脑残,用英文逗号隔开关键字"
+    },
+    {
+      "BV": "BV1uv411q7Mv",
+      "able_subcomment": true,
+      "able_printcomment": true,
+      "BlackList": "巨婴,脑残,用英文逗号隔开关键字"
+    }
+  ]
 }

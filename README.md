@@ -19,7 +19,39 @@ updated: 2023-06-15 09:27
 
 B站是 `B/S` 架构，特别好理解，很多都是 `Rustful` 请求，只要知道请求参数就可以获取数据了
 
-首先要获取用户凭证信息 https://nemo2011.github.io/bilibili-api/#/get-credential
+首先要获取用户凭证信息（cookie） https://nemo2011.github.io/bilibili-api/#/get-credential
+
+## 使用方式
+
+```json
+{
+  "USER": {
+    "SESSDATA": "请填写自己的 B站 cookie",
+    "BILI_JCT": "不知道怎么写看 README",
+    "BUVID3": "最后把本文件名改为 config.json "
+  },
+  "VIDEO": [
+    {
+      "BV": "BV1uv411q7Mv",
+      "able_subcomment": true,   # 把隐藏的子评论读取出来
+      "able_printcomment": true, # 输出读取到的评论，否则只显示被删除的评论
+      "BlackList": "巨婴,脑残,"   # 用英文逗号隔开关键字
+    },
+    {                            # 多个视频 重复添加即可，用 {} ，逗号隔开
+      "BV": "BV1uv411q7Mv",
+      "able_subcomment": true,
+      "able_printcomment": true,
+      "BlackList": "巨婴,脑残"
+    }
+  ]
+}
+```
+
+填写 用户凭证信息（cookie） 后  
+将 `config_example.json` 重命名为 `config.json`
+
+执行
+`python3 comment.py >> comment.log`
 
 ## 根据 api 自己写代码
 
