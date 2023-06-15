@@ -70,7 +70,7 @@ async def main():
         av = bvid2aid(BV)
         # 黑名单，用逗号隔开 数组
         blackList = conf['BlackList'].replace(' ', '').split(',')
-        blackList=list(filter(None, blackList)) # 去掉 空字符串
+        blackList = list(filter(None, blackList))  # 去掉 空字符串
         # 默认开启子评论检测，速度较慢
         able_subcomment = True
         if 'able_subcomment' in conf:
@@ -79,6 +79,10 @@ async def main():
         able_printcomment = True
         if 'able_printcomment' in conf:
             able_printcomment = conf['able_printcomment']
+
+        able_delete = False
+        if 'able_delete' in conf:
+            able_delete = conf['able_delete']
 
         # 存储评论
         comments = []
@@ -153,11 +157,12 @@ async def main():
         print('删除', len(delcommentList), '条', delcommentList)
 
         # 执行删除的名单
-        for delcomment in delcommentList:
-            # 实例化 Comment 类
-            com = comment.Comment(
-                oid=av, type_=comment.CommentResourceType.VIDEO, rpid=delcomment, credential=credential)
-            await com.delete()
+        if able_delete:
+            for delcomment in delcommentList:
+                # 实例化 Comment 类
+                com = comment.Comment(
+                    oid=av, type_=comment.CommentResourceType.VIDEO, rpid=delcomment, credential=credential)
+                await com.delete()
 
 
 sync(main())

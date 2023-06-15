@@ -33,12 +33,14 @@ B站是 `B/S` 架构，特别好理解，很多都是 `Rustful` 请求，只要�
   "VIDEO": [
     {
       "BV": "BV1uv411q7Mv",
-      "able_subcomment": true,   # 把隐藏的子评论读取出来
-      "able_printcomment": true, # 输出读取到的评论，否则只显示被删除的评论
-      "BlackList": "巨婴,脑残,"   # 用英文逗号隔开关键字
+      "able_delete": false,      // 默认不开启删除，可以先测试一下，是否是需要删除的评论
+      "able_subcomment": true,   // 把隐藏的子评论读取出来
+      "able_printcomment": true, // 输出读取到的评论，否则只显示被删除的评论，测试成功后建议关闭
+      "BlackList": "巨婴,脑残,"   // 用英文逗号隔开关键字
     },
-    {                            # 多个视频 重复添加即可，用 {} ，逗号隔开
+    {                            // 多个视频 重复添加即可，用 {} ，逗号隔开
       "BV": "BV1uv411q7Mv",
+      "able_delete": false,
       "able_subcomment": true,
       "able_printcomment": true,
       "BlackList": "巨婴,脑残"

@@ -7,12 +7,14 @@
   "VIDEOS": [
     {
       "BV": "BV1uv411q7Mv",
+      "able_delete": false,
       "able_subcomment": true,
       "able_printcomment": true,
       "BlackList": "巨婴,脑残,用英文逗号隔开关键字"
     },
     {
       "BV": "BV1uv411q7Mv",
+      "able_delete": false,
       "able_subcomment": true,
       "able_printcomment": true,
       "BlackList": "巨婴,脑残,用英文逗号隔开关键字"
