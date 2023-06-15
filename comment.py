@@ -77,7 +77,7 @@ async def main():
     c = await comment.get_comments(av, comment.CommentResourceType.VIDEO, page)
     sumCount = c['page']['count']
     upper_mid = c['upper']['mid']
-    if c['top_replies']:
+    if 'top_replies' in c:
         comments.extend(c['top_replies'])
 
     while True:
