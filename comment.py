@@ -13,7 +13,7 @@ SESSDATA = config['USER']['SESSDATA']
 BILI_JCT = config['USER']['BILI_JCT']
 BUVID3 = config['USER']['BUVID3']
 
-# 黑名单，用逗号隔开数组
+# 黑名单，用逗号隔开 数组
 blackList = config['VIDEO']['BlackList'].replace(' ', '').split(',')
 
 # 默认开启子评论检测，速度较慢
@@ -51,6 +51,7 @@ async def get_all_sub_comments(rpid):
 
 
 def black_cheak(cmt, blackList, upper_mid):
+    # upper 操作过就不删除
     if cmt["mid"] == upper_mid:
         print('upper comment')
         return False
