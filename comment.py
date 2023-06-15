@@ -19,6 +19,8 @@ blackList = config['VIDEO']['BlackList'].replace(' ', '').split(',')
 # 默认开启子评论检测，速度较慢
 able_subcomment = True
 able_subcomment = config['VIDEO']['able_subcomment']
+able_printcomment = True
+able_subcomment = config['VIDEO']['able_printcomment']
 
 
 # 实例化 Credential 类
@@ -47,16 +49,28 @@ async def get_all_sub_comments(rpid):
             break
     return subComments
 
+# 把隐藏的子评论读取出来
+
+
+async def get_all_page_comments(replies):
+    for reply in replies:
+        # 判断 阿B 有么有把 子评论 隐藏了
+        if able_subcomment and ('sub_reply_entry_text' in reply['reply_control']):
+            reply['replies'] = await get_all_sub_comments(reply['rpid'])
+    return replies
+
 # 检测是否含有 关键字
 
 
-def black_cheak(cmt, blackList, upper_mid):
+def black_cheak(cmt, blackList, upper_mid, able_printcomment) -> bool:
     # upper 操作过就不删除
     if cmt["mid"] == upper_mid:
-        print('upper comment')
+        if able_printcomment:
+            print('upper comment')
         return False
-    if cmt["up_action"]["like"] or cmt["up_action"]["reply"]:
-        print('upper like or reply')
+    elif cmt["up_action"]["like"] or cmt["up_action"]["reply"]:
+        if able_printcomment:
+            print('upper like or reply')
         return False
     return any(e in cmt['content']['message'] for e in blackList)
 
@@ -77,8 +91,9 @@ async def main():
     c = await comment.get_comments(av, comment.CommentResourceType.VIDEO, page)
     sumCount = c['page']['count']
     upper_mid = c['upper']['mid']
+    # 置顶单独有一列，是数组
     if 'top_replies' in c:
-        comments.extend(c['top_replies'])
+        comments.extend(await get_all_page_comments(c['top_replies']))
 
     while True:
         # 获取评论
@@ -86,12 +101,7 @@ async def main():
         # print(c)
         # 存储评论，如果被评论被删除的多，后面的数据就为空了
         if c['replies']:  # 这是一页评论
-            for reply in c['replies']:
-                # 判断 阿B 有么有把 子评论 隐藏了
-                if able_subcomment and ('sub_reply_entry_text' in reply['reply_control']):
-                    reply['replies'] = await get_all_sub_comments(reply['rpid'])
-            comments.extend(c['replies'])
-
+            comments.extend(await get_all_page_comments(c['replies']))
         else:
             break
         # 增加已获取数量
@@ -108,23 +118,27 @@ async def main():
     print("blackList:", blackList)
     countSub = 0
     for cmt in comments:
-        print(
-            f"rpid:{cmt['rpid']} {cmt['member']['uname']}: {cmt['content']['message']}")
+
         # 黑名单检测
-        if black_cheak(cmt, blackList, upper_mid):
+        if black_cheak(cmt=cmt, blackList=blackList, upper_mid=upper_mid, able_printcomment=able_printcomment):
             delcommentList.append(cmt['rpid'])
-            print('x')
+            print(
+                f"x rpid:{cmt['rpid']} mid:{cmt['mid']} {cmt['member']['uname']}: {cmt['content']['message']}")
+        elif able_printcomment:
+            print(
+                f"rpid:{cmt['rpid']} {cmt['member']['uname']}: {cmt['content']['message']}")
         # 对子评论
         if cmt['replies']:
             for reply in cmt['replies']:
                 countSub += 1
-                print(
-                    f"\t 子评论： rpid:{reply['rpid']} {reply['member']['uname']}: {reply['content']['message']}")
                 # 对子评论也检测
-                if black_cheak(reply, blackList, upper_mid):
+                if black_cheak(cmt=reply, blackList=blackList, upper_mid=upper_mid, able_printcomment=able_printcomment):
                     delcommentList.append(reply['rpid'])
-                    print('\t x')
-
+                    print(
+                        f"\tx 子评论： rpid:{reply['rpid']} mid:{reply['mid']} {reply['member']['uname']}: {reply['content']['message']}")
+                elif able_printcomment:
+                    print(
+                        f"\t 子评论： rpid:{reply['rpid']} {reply['member']['uname']}: {reply['content']['message']}")
     # 打印评论总数
     print(
         f"共有 {count + countSub} 条评论（含子评论 {countSub} 条）,被删除或系统屏蔽有 {sumCount - count}", "条")
